@@ -1,0 +1,237 @@
+:root {
+  --base: #1e1e2e;
+  --mantle: #181825;
+  --surface: #313244;
+  --surface2: #45475a;
+  --text: #cdd6f4;
+  --subtext: #a6adc8;
+  --blue: #89b4fa;
+  --red: #f38ba8;
+  --grey: #9399b2;
+  --green: #a6e3a1;
+  --yellow: #f9e2af;
+  --mauve: #cba6f7;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  background: var(--base);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+
+.muted { color: var(--subtext); }
+.small { font-size: 0.82rem; }
+.hidden { display: none !important; }
+
+/* ---------- centered login ---------- */
+.centered {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.card {
+  background: var(--mantle);
+  border: 1px solid var(--surface);
+  border-radius: 18px;
+  padding: 22px;
+}
+.login { width: 100%; max-width: 360px; text-align: center; }
+.login h1 { margin: 6px 0 4px; font-size: 1.7rem; }
+.logo { font-size: 3rem; }
+
+.input {
+  width: 100%;
+  padding: 15px 16px;
+  margin: 14px 0;
+  font-size: 1.1rem;
+  border-radius: 12px;
+  border: 1px solid var(--surface2);
+  background: var(--surface);
+  color: var(--text);
+}
+.input:focus { outline: 2px solid var(--mauve); }
+
+.btn {
+  display: inline-block;
+  width: 100%;
+  padding: 15px 16px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--mauve); color: #1e1e2e; }
+.btn-blue { background: var(--blue); color: #1e1e2e; }
+.btn-red { background: var(--red); color: #1e1e2e; }
+.btn-green { background: var(--green); color: #1e1e2e; }
+.btn-ghost { background: var(--surface); }
+.btn-sm { width: auto; padding: 9px 13px; font-size: 0.9rem; }
+.btn:disabled { opacity: 0.45; }
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row .btn { width: auto; flex: 1; }
+
+/* ---------- player app shell ---------- */
+.app { max-width: 480px; margin: 0 auto; padding: 18px 16px 90px; }
+.timerbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--mantle);
+  border-bottom: 1px solid var(--surface);
+}
+.clock { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 1.4rem; }
+.timerbar.warn .clock { color: var(--yellow); }
+.timerbar.danger .clock { color: var(--red); }
+.badge {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+  background: var(--yellow); color: #1e1e2e; padding: 2px 8px; border-radius: 999px;
+}
+
+.footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 6px 14px;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  background: var(--mantle); border-top: 1px solid var(--surface);
+}
+
+h1, h2, h3 { line-height: 1.2; }
+.section-title { margin: 18px 0 8px; font-size: 1.25rem; }
+
+/* room banner */
+.room-banner {
+  text-align: center; padding: 14px; border-radius: 14px; margin-bottom: 16px;
+  font-size: 1.3rem; font-weight: 700;
+}
+.room-A { background: rgba(137,180,250,0.18); border: 1px solid var(--blue); }
+.room-B { background: rgba(243,139,168,0.18); border: 1px solid var(--red); }
+
+/* the secret card */
+.rolecard {
+  border-radius: 18px; padding: 26px 20px; text-align: center;
+  min-height: 220px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px; cursor: pointer;
+  user-select: none;
+}
+.rolecard.hidden-face { background: linear-gradient(135deg, var(--surface), var(--surface2)); }
+.rolecard.team-blue { background: rgba(137,180,250,0.16); border: 2px solid var(--blue); }
+.rolecard.team-red  { background: rgba(243,139,168,0.16); border: 2px solid var(--red); }
+.rolecard.team-grey { background: rgba(147,153,178,0.16); border: 2px solid var(--grey); }
+.rolecard .role-name { font-size: 1.8rem; font-weight: 800; }
+.rolecard .role-team { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; }
+.rolecard .role-desc { font-size: 0.95rem; color: var(--subtext); }
+.tap-hint { font-size: 0.85rem; color: var(--subtext); }
+
+/* member list */
+.members { list-style: none; padding: 0; margin: 0; }
+.members li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; margin-bottom: 8px;
+  background: var(--surface); border-radius: 12px;
+}
+.members li.selectable { cursor: pointer; border: 2px solid transparent; }
+.members li.selected { border-color: var(--yellow); background: rgba(249,226,175,0.12); }
+.members .leader-tag { margin-left: auto; font-size: 0.75rem; color: var(--yellow); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
+.dot.off { background: var(--surface2); }
+
+.notice { text-align: center; padding: 20px; color: var(--subtext); }
+.big-emoji { font-size: 3.4rem; text-align: center; }
+
+/* ---------- admin ---------- */
+body.admin { max-width: 1100px; margin: 0 auto; }
+.admin-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; padding: 16px;
+}
+.admin-header h1 { margin: 0; font-size: 1.4rem; }
+.admin-status { display: flex; gap: 8px; }
+.pill {
+  background: var(--surface); padding: 6px 12px; border-radius: 999px;
+  font-size: 0.85rem; font-weight: 600;
+}
+.pill.clock { font-size: 1rem; }
+.admin-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 16px 40px;
+}
+.admin-grid .card { margin: 0; }
+.admin-grid .wide { grid-column: 1 / -1; }
+.admin .card h2 { margin-top: 0; font-size: 1.1rem; }
+label.field { display: block; margin: 10px 0; font-size: 0.9rem; }
+label.field input[type=number], label.field input[type=text] {
+  width: 90px; margin-left: 8px; padding: 7px 9px; border-radius: 8px;
+  border: 1px solid var(--surface2); background: var(--surface); color: var(--text);
+}
+.role-toggles label {
+  display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 4px 0;
+  padding: 6px 10px; background: var(--surface); border-radius: 10px; font-size: 0.9rem;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--surface); font-size: 0.9rem; }
+th { color: var(--subtext); font-weight: 600; }
+.tag { padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.tag.blue { background: rgba(137,180,250,0.25); color: var(--blue); }
+.tag.red { background: rgba(243,139,168,0.25); color: var(--red); }
+.tag.grey { background: rgba(147,153,178,0.25); color: var(--grey); }
+.win-blue { color: var(--blue); font-weight: 800; }
+.win-red { color: var(--red); font-weight: 800; }
+
+@media (max-width: 720px) {
+  .admin-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- how-to-play overlay ---------- */
+.linkbtn {
+  background: none; border: none; color: var(--subtext);
+  font: inherit; font-size: 0.82rem; cursor: pointer; padding: 0;
+}
+.linkbtn:active { color: var(--text); }
+
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(17, 17, 27, 0.72);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.overlay-sheet {
+  width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
+  background: var(--mantle);
+  border: 1px solid var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(28px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+.overlay-head {
+  position: sticky; top: -20px; margin: -20px -20px 8px; padding: 16px 20px;
+  background: var(--mantle); border-bottom: 1px solid var(--surface);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.overlay-head h2 { margin: 0; font-size: 1.2rem; }
+.overlay-sheet h3 { margin: 18px 0 6px; font-size: 1.02rem; }
+.overlay-sheet p, .overlay-sheet li { color: var(--subtext); font-size: 0.94rem; }
+.overlay-sheet ul { margin: 6px 0; padding-left: 20px; }
+.overlay-sheet li { margin-bottom: 5px; }
+.t-blue { color: var(--blue); }
+.t-red { color: var(--red); }
+.t-grey { color: var(--grey); }
+
+.card-sheet { border-radius: 20px; align-self: center; margin: auto; }
+.card-sheet #card-overlay-body { margin-top: 12px; }

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Two Rooms and a Boom</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="centered">
+  <main class="card login">
+    <div class="logo">💣</div>
+    <h1>Two Rooms<br>and a Boom</h1>
+    <p class="muted">Enter your name to join the game.</p>
+    <form method="post" action="{{ url_for('login') }}">
+      <input class="input" type="text" name="name" placeholder="Your name" maxlength="24"
+             autocomplete="off" autofocus required>
+      <button class="btn btn-primary" type="submit">Join</button>
+    </form>
+    <p class="muted small">No password needed. You'll stay logged in if you refresh.</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,6 @@
+.git
+.claude
+.venv
+__pycache__
+*.py[cod]
+data/state.json

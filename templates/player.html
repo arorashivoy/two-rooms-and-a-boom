@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Two Rooms and a Boom</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div id="timerbar" class="timerbar hidden">
+    <span id="roundlabel">Round</span>
+    <span id="clock" class="clock">--:--</span>
+    <span id="paused-badge" class="badge hidden">paused</span>
+  </div>
+
+  <main id="app" class="app">
+    <p class="muted">Connecting…</p>
+  </main>
+
+  <footer class="footer">
+    <span id="whoami" class="muted small"></span>
+    <button id="card-btn" class="linkbtn small">🃏 My card</button>
+    <button id="rules-btn" class="linkbtn small">📖 How to play</button>
+    <a class="muted small" href="{{ url_for('logout') }}">log out</a>
+  </footer>
+
+  <div id="card-overlay" class="overlay hidden">
+    <div class="overlay-sheet card-sheet">
+      <div class="overlay-head">
+        <h2>Your card</h2>
+        <button id="card-close" class="btn btn-sm btn-ghost">Close ✕</button>
+      </div>
+      <p class="muted small">Keep this hidden from other players.</p>
+      <div id="card-overlay-body"></div>
+    </div>
+  </div>
+
+  <div id="rules-overlay" class="overlay hidden">
+    <div class="overlay-sheet">
+      <div class="overlay-head">
+        <h2>How to play</h2>
+        <button id="rules-close" class="btn btn-sm btn-ghost">Close ✕</button>
+      </div>
+
+      <h3>🎯 The goal</h3>
+      <p>Everyone is secretly on the <b class="t-blue">Blue team</b> or the <b class="t-red">Red team</b>.
+      Two people matter most: the <b>President</b> (Blue) and the <b>Bomber</b> (Red).</p>
+      <ul>
+        <li><b class="t-blue">Blue wins</b> if, when the game ends, the President is <b>NOT</b> in the
+        same room as the Bomber.</li>
+        <li><b class="t-red">Red wins</b> if the President <b>IS</b> in the same room as the Bomber
+        (the bomb gets them). 💥</li>
+        <li><b class="t-grey">Grey</b> characters are neutral and have their own private goal.</li>
+      </ul>
+
+      <h3>🃏 Your card</h3>
+      <p>Tap your card to reveal your secret role, tap again to hide it. Keep it secret! You may
+      <i>show</i> your card privately to someone to build trust — but you never have to be honest,
+      and you should never just hand your phone around.</p>
+
+      <h3>🚪 Rooms</h3>
+      <p>You're placed in <b>Room A</b> or <b>Room B</b> — this is the real room you should physically
+      stand in. Your screen always shows which room you belong to and who else is in it.</p>
+
+      <h3>⏱️ Rounds & the timer</h3>
+      <p>The game runs for several timed rounds. The countdown at the top is the same on every phone.
+      Talk, share cards, and figure out who to trust before time runs out.</p>
+
+      <h3>👑 Leaders</h3>
+      <p>Each round, every room needs one <b>Leader</b>. Tap <b>“I'll be leader”</b> to volunteer —
+      agree among yourselves who it should be (the host can also set it). The leader decides who gets
+      sent to the other room.</p>
+
+      <h3>🤝 Hostage exchange</h3>
+      <p>When the round timer ends, each room's Leader picks a set number of <b>hostages</b> to send to
+      the other room. Once both leaders lock in, those players physically swap rooms, and the next round
+      begins.</p>
+
+      <h3>🏁 The end</h3>
+      <p>After the final swap, everyone's location is locked. If the President and Bomber ended up
+      together, <b class="t-red">Red wins</b>; if they're apart, <b class="t-blue">Blue wins</b>. Your
+      screen shows the result.</p>
+
+      <h3>💡 Tips</h3>
+      <ul>
+        <li>If you're the President, decide who to trust with that secret — revealing it can rally Blue,
+        but the Bomber may be listening.</li>
+        <li>If you're the Bomber, blend in and try to end the game in the President's room.</li>
+        <li>You can refresh this page anytime without losing your spot or your card.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>window.PLAYER_ID = "{{ player_id }}";</script>
+  <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/player.js') }}"></script>
+</body>
+</html>
