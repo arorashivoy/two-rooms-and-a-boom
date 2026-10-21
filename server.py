@@ -27,7 +27,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("TRAB_SECRET", os.urandom(24).hex())
 socketio = SocketIO(app, async_mode="threading", cors_allowed_origins="*")
 
-ADMIN_PIN = os.environ.get("TRAB_ADMIN_PIN") or f"{random.randint(1000, 9999)}"
+CONFIGURED_ADMIN_PIN = os.environ.get("TRAB_ADMIN_PIN")
+ADMIN_PIN = CONFIGURED_ADMIN_PIN or f"{random.randint(1000, 9999)}"
 PORT = int(os.environ.get("TRAB_PORT", "5001"))
 SNAPSHOT_PATH = os.path.join(os.path.dirname(__file__), "data", "state.json")
 
@@ -368,7 +369,10 @@ def main():
     print(line)
     print(f"  Players open:  http://{ip}:{PORT}/")
     print(f"  Admin panel:   http://{ip}:{PORT}/admin")
-    print(f"  Admin PIN:     {ADMIN_PIN}")
+    if CONFIGURED_ADMIN_PIN:
+        print("  Admin PIN:     configured with TRAB_ADMIN_PIN")
+    else:
+        print(f"  Admin PIN:     {ADMIN_PIN}")
     print(f"{line}\n  (Phones must be on the SAME Wi-Fi. Allow the macOS")
     print("   firewall prompt if it appears.)")
     print(f"{line}\n")

@@ -28,7 +28,7 @@ Admin PIN:     4821
 
 ### Environment overrides
 - `TRAB_PORT` — port (default `5001`)
-- `TRAB_ADMIN_PIN` — fixed admin PIN (default: random 4 digits each boot)
+- `TRAB_ADMIN_PIN` — fixed admin PIN (default: random 4 digits each boot when run with Python)
 - `TRAB_SECRET` — cookie signing secret (default: random each boot; set it to keep
   player logins valid across restarts)
 - `TRAB_PUBLIC_HOST` — LAN host name or IP to print in the server URLs. Set this
@@ -45,16 +45,18 @@ docker run -d \
    --name two-rooms-and-a-boom \
    --restart unless-stopped \
    -p 5001:5001 \
+   -e TRAB_ADMIN_PIN="set-a-private-pin" \
    -e TRAB_PUBLIC_HOST="$(hostname -I | awk '{print $1}')" \
    -v trab-data:/app/data \
    two-rooms-and-a-boom
 ```
 
-The named volume keeps the game snapshot across container restarts. Open the
-printed LAN address on the player phones. Read the admin PIN with
-`docker logs two-rooms-and-a-boom`. Set `TRAB_ADMIN_PIN` and `TRAB_SECRET` with
-`-e` options to keep those values fixed across restarts. Keep the players and Pi
-on the same Wi-Fi network.
+Set `TRAB_ADMIN_PIN` in the Docker launch page's environment or secret settings.
+Use that same value on the admin login page. Docker requires this setting and
+does not print the PIN in its logs. Keep it private. The named volume keeps the
+game snapshot across container restarts. Set `TRAB_SECRET` as an environment
+variable to keep player logins valid across restarts. Keep the players and Pi on
+the same Wi-Fi network.
 
 ## How a game runs
 

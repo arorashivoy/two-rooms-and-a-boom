@@ -17,4 +17,4 @@ COPY --chown=app:app . .
 USER app
 EXPOSE 5001
 
-CMD ["python", "server.py"]
+CMD ["sh", "-c", "test -n \"$TRAB_ADMIN_PIN\" || { echo 'Set TRAB_ADMIN_PIN in the container environment.' >&2; exit 1; }; exec python server.py"]
