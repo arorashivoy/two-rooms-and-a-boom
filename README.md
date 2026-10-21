@@ -9,6 +9,8 @@ countdown, tracks rooms/leaders/hostages, and reveals the winner.
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+cp .env.example .env
+# Edit .env and set a private TRAB_ADMIN_PIN and TRAB_SECRET.
 .venv/bin/python server.py
 ```
 
@@ -27,6 +29,7 @@ Admin PIN:     4821
 - You open `/admin` on the laptop and enter the PIN.
 
 ### Environment overrides
+- Set these values in `.env`; shell environment variables take precedence.
 - `TRAB_PORT` — port (default `5001`)
 - `TRAB_ADMIN_PIN` — fixed admin PIN (default: random 4 digits each boot when run with Python)
 - `TRAB_SECRET` — cookie signing secret (default: random each boot; set it to keep
@@ -41,22 +44,22 @@ ARM platforms, so build the image on the Pi or use Docker Buildx for another tar
 
 ```bash
 docker build -t two-rooms-and-a-boom .
+cp .env.example .env
+# Edit .env and set a private TRAB_ADMIN_PIN and TRAB_SECRET.
 docker run -d \
    --name two-rooms-and-a-boom \
    --restart unless-stopped \
    -p 5001:5001 \
-   -e TRAB_ADMIN_PIN="set-a-private-pin" \
-   -e TRAB_PUBLIC_HOST="$(hostname -I | awk '{print $1}')" \
+   --env-file .env \
    -v trab-data:/app/data \
    two-rooms-and-a-boom
 ```
 
-Set `TRAB_ADMIN_PIN` in the Docker launch page's environment or secret settings.
-Use that same value on the admin login page. Docker requires this setting and
-does not print the PIN in its logs. Keep it private. The named volume keeps the
-game snapshot across container restarts. Set `TRAB_SECRET` as an environment
-variable to keep player logins valid across restarts. Keep the players and Pi on
-the same Wi-Fi network.
+Docker reads `.env` through `--env-file`; it does not copy the file into the
+image. Use the same `TRAB_ADMIN_PIN` on the admin login page. Docker requires
+this setting and does not print the PIN in its logs. Keep it private. The named
+volume keeps the game snapshot across container restarts. Keep the players and
+Pi on the same Wi-Fi network.
 
 ## How a game runs
 

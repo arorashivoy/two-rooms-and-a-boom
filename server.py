@@ -9,6 +9,7 @@ import os
 import random
 import socket
 
+from dotenv import load_dotenv
 from flask import (
     Flask,
     redirect,
@@ -22,6 +23,8 @@ from flask_socketio import SocketIO, emit, join_room
 import game as gamemod
 from game import Game
 from roles import optional_roles
+
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("TRAB_SECRET", os.urandom(24).hex())
