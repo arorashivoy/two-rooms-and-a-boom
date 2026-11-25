@@ -235,3 +235,17 @@ th { color: var(--subtext); font-weight: 600; }
 
 .card-sheet { border-radius: 20px; align-self: center; margin: auto; }
 .card-sheet #card-overlay-body { margin-top: 12px; }
+
+/* Admin hostage exchange */
+.exchange { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.exchange h3 { margin: 0; }
+.ex-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ex-col { display: flex; flex-direction: column; gap: 6px; }
+.ex-head { font-weight: 600; }
+.chip {
+  text-align: left; padding: 9px 12px; border-radius: 8px; cursor: pointer;
+  background: var(--surface); color: var(--text); font: inherit; font-size: 0.95rem;
+  border: 2px solid transparent;
+}
+.chip.on { border-color: var(--yellow); background: rgba(249,226,175,0.12); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }

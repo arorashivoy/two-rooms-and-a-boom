@@ -160,8 +160,8 @@ function renderHostage() {
         <h2>Hostage exchange</h2>
         <p class="muted">Your leader (<b>${escapeHtml(leaderNameOf() || "—")}</b>) is choosing who to send to the other room.</p>
       </div>`));
-    if (!state.leader) {
-      const b = el(`<button class="btn btn-ghost">No leader — I'll do it</button>`);
+    if (!state.leader || state.leader_online === false) {
+      const b = el(`<button class="btn btn-ghost">${state.leader ? "Leader is offline" : "No leader"} — I'll do it</button>`);
       b.onclick = () => socket.emit("claim_leader", {});
       app.appendChild(b);
     }

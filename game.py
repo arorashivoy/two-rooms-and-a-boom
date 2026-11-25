@@ -95,6 +95,7 @@ class Game:
             if self.leaders[room] == player_id:
                 self.leaders[room] = None
             self.hostages[room] = [pid for pid in self.hostages[room] if pid != player_id]
+            self.confirmed[room] = False
 
     def room_members(self, room):
         return [p for p in self.players.values() if p.room == room]
@@ -128,6 +129,7 @@ class Game:
         if round_no is None:
             round_no = self.current_round + 1 if self.current_round else 1
         self.current_round = round_no
+        self.prune_leaders()
         self.phase = ROUND
         self.confirmed = {"A": False, "B": False}
         self.hostages = {"A": [], "B": []}
@@ -178,8 +180,36 @@ class Game:
 
     # ----- hostage selection ----------------------------------------------
     def required_hostages(self, room):
-        n = self.config["hostage_counts"][self.current_round - 1]
-        return min(n, len(self.room_members(room)))
+        counts = self.config.get("hostage_counts") or [1]
+        idx = max(0, min(self.current_round - 1, len(counts) - 1))
+        return min(counts[idx], len(self.room_members(room)))
+
+    def prune_leaders(self):
+        """Drop a leader who is gone or who now sits in the other room."""
+        for room in ("A", "B"):
+            pid = self.leaders.get(room)
+            p = self.get(pid) if pid else None
+            if not p or p.room != room:
+                self.leaders[room] = None
+
+    def admin_exchange(self, from_a, from_b):
+        """Admin picks the hostages for both rooms and the swap runs now.
+
+        Returns "endgame" or "next". Raises ValueError for a bad request.
+        """
+        if self.phase != HOSTAGE_SELECT:
+            raise ValueError("The hostage exchange is possible only after a round ends.")
+        from_a = list(dict.fromkeys(from_a or []))
+        from_b = list(dict.fromkeys(from_b or []))
+        for room, ids in (("A", from_a), ("B", from_b)):
+            for pid in ids:
+                p = self.get(pid)
+                if not p or p.room != room:
+                    raise ValueError(f"A chosen player is not in Room {room}.")
+        if len(from_a) != len(from_b):
+            raise ValueError("Both rooms must send the same number of hostages.")
+        self.hostages = {"A": from_a, "B": from_b}
+        return self.apply_swap()
 
     def set_hostages(self, room, player_ids):
         valid = {p.id for p in self.room_members(room)}
@@ -210,10 +240,12 @@ class Game:
                 self.get(pid).room = "A"
         self.hostages = {"A": [], "B": []}
         self.confirmed = {"A": False, "B": False}
+        self.prune_leaders()
 
         if self.current_round >= self.config["num_rounds"]:
             self.compute_result()
             return "endgame"
+        self.phase = DEAL  # between-round "ready" screen
         return "next"
 
     # ----- endgame ---------------------------------------------------------
@@ -286,6 +318,8 @@ class Game:
             view["room_members"] = room_members[room]
             if self.phase in (ROUND, HOSTAGE_SELECT):
                 view["leader"] = self.leaders[room]
+                leader_p = self.get(self.leaders[room]) if self.leaders[room] else None
+                view["leader_online"] = bool(leader_p and leader_p.connected)
                 view["is_leader"] = self.leaders[room] == player_id
                 view["required_hostages"] = self.required_hostages(room)
                 view["hostages"] = self.hostages[room]
@@ -311,6 +345,11 @@ class Game:
             "timer": self.timer_state(),
             "leaders": self.leaders,
             "confirmed": self.confirmed,
+            "hostages": self.hostages,
+            "required": {
+                "A": self.required_hostages("A") if self.phase in (ROUND, HOSTAGE_SELECT) else 0,
+                "B": self.required_hostages("B") if self.phase in (ROUND, HOSTAGE_SELECT) else 0,
+            },
             "result": self.result,
             # NOTE: player roles are deliberately NOT included here. The admin
             # laptop is visible to bystanders, so cards must stay secret. Only

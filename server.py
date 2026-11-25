@@ -4,10 +4,13 @@ Run:  python server.py
 Then open the printed LAN URL on player phones, and /admin on your laptop.
 """
 
+import functools
 import json
 import os
 import random
 import socket
+import threading
+import traceback
 
 from dotenv import load_dotenv
 from flask import (
@@ -39,15 +42,33 @@ GAME = Game()
 SID_TO_PID = {}          # socket session id -> player id
 ADMIN_SIDS = set()       # socket session ids of connected admins
 
+# One lock guards GAME and the sid maps. Socket handlers run in many threads and
+# the timer watcher runs in another. Without the lock they change the same
+# state at the same time.
+LOCK = threading.RLock()
+
+
+def on_event(event):
+    """Like socketio.on, but each handler runs under LOCK."""
+    def decorator(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            with LOCK:
+                return fn(*args, **kwargs)
+        return socketio.on(event)(wrapper)
+    return decorator
+
 
 # --------------------------------------------------------------------------
 # Persistence (best-effort snapshot so a laptop restart can recover a game)
 # --------------------------------------------------------------------------
 def save_snapshot():
+    tmp = SNAPSHOT_PATH + ".tmp"
     try:
         os.makedirs(os.path.dirname(SNAPSHOT_PATH), exist_ok=True)
-        with open(SNAPSHOT_PATH, "w") as f:
+        with open(tmp, "w") as f:
             json.dump(GAME.to_snapshot(), f)
+        os.replace(tmp, SNAPSHOT_PATH)  # atomic: a crash never leaves half a file
     except OSError:
         pass
 
@@ -67,8 +88,9 @@ def load_snapshot():
 def broadcast_state():
     # Use socketio.emit (not flask_socketio.emit): this runs both from socket
     # handlers AND from the background timer thread, which has no request context.
-    player_views = GAME.player_views(SID_TO_PID.values())
-    for sid, pid in list(SID_TO_PID.items()):
+    sid_pairs = list(SID_TO_PID.items())
+    player_views = GAME.player_views({pid for _, pid in sid_pairs})
+    for sid, pid in sid_pairs:
         socketio.emit("state", player_views.get(pid, {"phase": "GONE"}), to=sid)
     admin_view = GAME.admin_view()
     admin_view["optional_roles"] = [
@@ -152,7 +174,7 @@ def admin_login():
 # --------------------------------------------------------------------------
 # Socket.IO — player events
 # --------------------------------------------------------------------------
-@socketio.on("player_hello")
+@on_event("player_hello")
 def on_player_hello(data):
     pid = (data or {}).get("player_id")
     p = GAME.get(pid)
@@ -165,7 +187,7 @@ def on_player_hello(data):
     broadcast_state()
 
 
-@socketio.on("claim_leader")
+@on_event("claim_leader")
 def on_claim_leader(data):
     pid = SID_TO_PID.get(request.sid)
     p = GAME.get(pid)
@@ -174,7 +196,7 @@ def on_claim_leader(data):
         broadcast_state()
 
 
-@socketio.on("appoint_leader")
+@on_event("appoint_leader")
 def on_appoint_leader(data):
     """Current leader hands leadership to another player in the same room."""
     pid = SID_TO_PID.get(request.sid)
@@ -186,7 +208,7 @@ def on_appoint_leader(data):
         broadcast_state()
 
 
-@socketio.on("set_hostages")
+@on_event("set_hostages")
 def on_set_hostages(data):
     pid = SID_TO_PID.get(request.sid)
     p = GAME.get(pid)
@@ -195,16 +217,14 @@ def on_set_hostages(data):
         broadcast_state()
 
 
-@socketio.on("confirm_hostages")
+@on_event("confirm_hostages")
 def on_confirm_hostages(data):
     pid = SID_TO_PID.get(request.sid)
     p = GAME.get(pid)
     if not (p and GAME.phase == gamemod.HOSTAGE_SELECT and GAME.leaders.get(p.room) == pid):
         return
     if GAME.confirm_hostages(p.room) and GAME.both_confirmed():
-        outcome = GAME.apply_swap()
-        if outcome == "next":
-            GAME.phase = gamemod.DEAL  # between-round "ready" screen
+        GAME.apply_swap()
     broadcast_state()
 
 
@@ -215,7 +235,7 @@ def _is_admin():
     return session.get("admin") or request.sid in ADMIN_SIDS
 
 
-@socketio.on("admin_hello")
+@on_event("admin_hello")
 def on_admin_hello(data):
     if not session.get("admin"):
         return
@@ -224,7 +244,7 @@ def on_admin_hello(data):
     broadcast_state()
 
 
-@socketio.on("admin_start")
+@on_event("admin_start")
 def on_admin_start(data):
     if not _is_admin():
         return
@@ -246,7 +266,7 @@ def on_admin_start(data):
     broadcast_state()
 
 
-@socketio.on("admin_begin_round")
+@on_event("admin_begin_round")
 def on_admin_begin_round(data):
     if not _is_admin():
         return
@@ -255,28 +275,28 @@ def on_admin_begin_round(data):
         broadcast_state()
 
 
-@socketio.on("admin_pause")
+@on_event("admin_pause")
 def on_admin_pause(data):
     if _is_admin():
         GAME.pause()
         broadcast_state()
 
 
-@socketio.on("admin_resume")
+@on_event("admin_resume")
 def on_admin_resume(data):
     if _is_admin():
         GAME.resume()
         broadcast_state()
 
 
-@socketio.on("admin_adjust")
+@on_event("admin_adjust")
 def on_admin_adjust(data):
     if _is_admin():
         GAME.adjust_time(int((data or {}).get("delta", 0)))
         broadcast_state()
 
 
-@socketio.on("admin_skip_round")
+@on_event("admin_skip_round")
 def on_admin_skip_round(data):
     """End the timer now and go to hostage selection."""
     if _is_admin():
@@ -284,26 +304,31 @@ def on_admin_skip_round(data):
         broadcast_state()
 
 
-@socketio.on("admin_set_leader")
+@on_event("admin_set_leader")
 def on_admin_set_leader(data):
     if _is_admin() and data:
         GAME.set_leader(data.get("room"), data.get("player_id"))
         broadcast_state()
 
 
-@socketio.on("admin_force_swap")
-def on_admin_force_swap(data):
-    """Skip hostage confirmation and just advance (admin override)."""
+@on_event("admin_exchange")
+def on_admin_exchange(data):
+    """Admin chooses the hostages of both rooms and runs the exchange now.
+
+    Equal numbers must leave each room. Two empty lists skip the exchange.
+    """
     if not _is_admin():
         return
-    if GAME.phase == gamemod.HOSTAGE_SELECT:
-        outcome = GAME.apply_swap()
-        if outcome == "next":
-            GAME.phase = gamemod.DEAL
-        broadcast_state()
+    data = data or {}
+    try:
+        GAME.admin_exchange(data.get("from_a"), data.get("from_b"))
+    except ValueError as e:
+        emit("admin_error", {"message": str(e)})
+        return
+    broadcast_state()
 
 
-@socketio.on("admin_kick")
+@on_event("admin_kick")
 def on_admin_kick(data):
     if not _is_admin():
         return
@@ -317,14 +342,14 @@ def on_admin_kick(data):
     broadcast_state()
 
 
-@socketio.on("admin_reveal")
+@on_event("admin_reveal")
 def on_admin_reveal(data):
     if _is_admin():
         GAME.compute_result()
         broadcast_state()
 
 
-@socketio.on("admin_reset")
+@on_event("admin_reset")
 def on_admin_reset(data):
     if not _is_admin():
         return
@@ -336,30 +361,40 @@ def on_admin_reset(data):
 # --------------------------------------------------------------------------
 # Connection lifecycle + authoritative timer watcher
 # --------------------------------------------------------------------------
-@socketio.on("disconnect")
+@on_event("disconnect")
 def on_disconnect():
     sid = request.sid
     ADMIN_SIDS.discard(sid)
     pid = SID_TO_PID.pop(sid, None)
     p = GAME.get(pid) if pid else None
-    if p:
+    # A phone that reconnects gets a new sid before the old sid times out.
+    # Mark the player offline only if no other sid is left for the player.
+    if p and pid not in SID_TO_PID.values():
         p.connected = False
         p.sid = None
         broadcast_state()
 
 
 def timer_watcher():
-    """Single background loop: the server owns the clock and fires round-end."""
+    """Single background loop: the server owns the clock and fires round-end.
+
+    An error in one pass must not stop the loop. If the loop stops, no round
+    ever ends and the game hangs.
+    """
     while True:
         socketio.sleep(0.5)
-        if (
-            GAME.phase == gamemod.ROUND
-            and not GAME.paused
-            and GAME.round_ends_at
-            and gamemod.now_ms() >= GAME.round_ends_at
-        ):
-            GAME.end_round()
-            broadcast_state()
+        try:
+            with LOCK:
+                if (
+                    GAME.phase == gamemod.ROUND
+                    and not GAME.paused
+                    and GAME.round_ends_at
+                    and gamemod.now_ms() >= GAME.round_ends_at
+                ):
+                    GAME.end_round()
+                    broadcast_state()
+        except Exception:
+            traceback.print_exc()
 
 
 def main():

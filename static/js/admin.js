@@ -22,6 +22,7 @@ socket.on("admin_state", (s) => {
   if (s.timer && s.timer.server_now) clockOffset = s.timer.server_now - Date.now();
   if (first || setupEl.dataset.dirty !== "1") renderSetup();
   renderHeader();
+  syncExchange();
   renderControls();
   renderPlayers();
   renderResult();
@@ -117,7 +118,7 @@ function renderControls() {
   }
   if (st.phase === "HOSTAGE_SELECT") {
     add(el(`<p class="muted">Leaders are choosing hostages. A locked: <b>${st.confirmed.A ? "✔" : "…"}</b> · B locked: <b>${st.confirmed.B ? "✔" : "…"}</b></p>`));
-    add(btn("Force swap & advance", "btn-ghost", () => { if (confirm("Force the swap without waiting for both leaders?")) socket.emit("admin_force_swap", {}); }));
+    renderExchange(add);
   }
   if (st.phase === "ENDGAME") {
     add(btn("↺ New game (keep players)", "btn-primary", () => socket.emit("admin_reset", { keep_players: true })));
@@ -128,6 +129,62 @@ function renderControls() {
     if (st.phase !== "ENDGAME") add(btn("Reveal result now", "btn-red", () => { if (confirm("End the game and reveal the result?")) socket.emit("admin_reveal", {}); }));
     add(btn("Reset to lobby (keep players)", "btn-ghost", () => { if (confirm("Reset the game back to the lobby?")) socket.emit("admin_reset", { keep_players: true }); }));
   }
+}
+
+/* ---- admin hostage exchange ----
+   The admin picks the hostages of both rooms and runs the swap. The boxes start
+   with the picks of the leaders. After the admin changes a box, the picks stay
+   as the admin set them until the phase or the round changes. */
+let exPick = { A: [], B: [] };
+let exKey = "";
+let exTouched = false;
+
+function syncExchange() {
+  const key = st.phase + ":" + st.current_round;
+  if (key !== exKey) { exKey = key; exTouched = false; exPick = { A: [], B: [] }; }
+  if (st.phase === "HOSTAGE_SELECT" && !exTouched) {
+    exPick = { A: [...(st.hostages.A || [])], B: [...(st.hostages.B || [])] };
+  }
+  for (const room of ["A", "B"]) {
+    exPick[room] = exPick[room].filter((id) => st.players.some((p) => p.id === id && p.room === room));
+  }
+}
+
+function renderExchange(add) {
+  const wrap = el(`<div class="exchange"></div>`);
+  wrap.appendChild(el(`<h3>Hostage exchange (admin)</h3>`));
+  wrap.appendChild(el(`<p class="muted small">Tap the players who move to the other room. Both rooms send the same number. The leaders need to do nothing.</p>`));
+  const cols = document.createElement("div");
+  cols.className = "ex-cols";
+  for (const room of ["A", "B"]) {
+    const col = document.createElement("div");
+    col.className = "ex-col";
+    col.appendChild(el(`<div class="ex-head">Room ${room} sends ${exPick[room].length} <span class="muted small">(round rule: ${st.required[room]})</span></div>`));
+    st.players.filter((p) => p.room === room).forEach((p) => {
+      const on = exPick[room].includes(p.id);
+      const chip = el(`<button class="chip ${on ? "on" : ""}" aria-pressed="${on}">${escapeHtml(p.name)}${p.is_leader ? " ★" : ""}</button>`);
+      chip.onclick = () => {
+        exTouched = true;
+        const i = exPick[room].indexOf(p.id);
+        if (i >= 0) exPick[room].splice(i, 1); else exPick[room].push(p.id);
+        renderControls();
+      };
+      col.appendChild(chip);
+    });
+    cols.appendChild(col);
+  }
+  wrap.appendChild(cols);
+  const a = exPick.A.length, b = exPick.B.length;
+  const skip = a === 0 && b === 0;
+  const balanced = a === b;
+  const go = btn(skip ? "Skip exchange (no one moves)" : `Exchange ${a} ⇄ ${b} and go on`, skip ? "btn-ghost" : "btn-primary", () => {
+    if (skip && !confirm("Move nobody and go on?")) return;
+    socket.emit("admin_exchange", { from_a: exPick.A, from_b: exPick.B });
+  });
+  go.disabled = !balanced;
+  wrap.appendChild(go);
+  if (!balanced) wrap.appendChild(el(`<p class="muted small">Room A sends ${a}, Room B sends ${b}. Make the two numbers equal.</p>`));
+  add(wrap);
 }
 
 function renderPlayers() {
